@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cotizador - Diseñador Freelance</title>
+
+  <!-- jsPDF para exportar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* ====== Reset & base (mobile-first) ====== */
+    :root{
+      --bg:#f8fafc; --card:#fff; --text:#0f172a; --muted:#475569;
+      --accent:#0ea5e9; --accent-2:#ef4444; --glass: rgba(255,255,255,0.6);
+      --radius:10px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:var(--bg); color:var(--text); padding:16px;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      transition: background .25s, color .25s;
+    }
+    h1{font-size:20px; margin:6px 0 14px; text-align:center}
+    .wrap{max-width:1100px; margin:0 auto}
+
+    /* layout mobile first */
+    .grid{display:flex; flex-direction:column; gap:14px}
+    .card{background:var(--card); padding:14px; border-radius:var(--radius); box-shadow:0 6px 20px rgba(12,20,30,0.06);}
+    label{font-weight:600; font-size:14px}
+    input[type="text"], input[type="number"], textarea, select{
+      width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid #e6eef7; font-size:14px;
+      background:white;
+    }
+    textarea{min-height:72px; resize:vertical}
+    .row{display:flex; gap:10px; align-items:center}
+    .muted{color:var(--muted); font-size:13px}
+
+    /* servicios */
+    .category-title{font-weight:800; font-size:16px; margin:10px 0 8px; color:#1f2937}
+    .service{background:var(--card); border-radius:10px; padding:12px; margin-bottom:10px; box-shadow:0 4px 14px rgba(12,20,30,0.04); display:flex; flex-direction:column}
+    .service-header{display:flex; align-items:center; gap:12px}
+    .service-header input[type="checkbox"]{width:20px;height:20px; accent-color:var(--accent)}
+    .service-header label{font-size:15px; font-weight:700}
+    .description{font-size:13px; color:var(--muted); margin:8px 0}
+    .qty{display:flex; gap:8px; align-items:center; justify-content:space-between}
+    .qty .left{display:flex; gap:8px; align-items:center}
+    .qty input[type="number"]{width:72px; padding:8px; border-radius:8px; text-align:center}
+    .price{font-weight:800; color:var(--accent)}
+
+    /* botones */
+    .btn{display:inline-block; padding:10px 12px; border-radius:8px; cursor:pointer; border:0; font-weight:700; font-size:14px}
+    .btn-primary{background:var(--accent); color:#fff}
+    .btn-outline{background:transparent; border:1px solid rgba(14,165,233,0.12); color:var(--accent)}
+    .btn-discount{background:#e6f6ff;color:#036b93;border-radius:8px;padding:8px 10px;border:1px solid #ccf0ff}
+    .btn-pdf{background:#fef3c7;color:#92400e}
+    .btn-wa{background:#dcfce7;color:#14532d}
+    .btn-save{background:#ede9fe;color:#5b21b6}
+    .btn-dark{background:#e2e8f0;color:#0f172a}
+
+    /* totales */
+    .final-total{font-size:18px; font-weight:800; color:var(--accent-2); text-align:right; margin-top:8px}
+
+    /* historial */
+    .historial-item{padding:8px;border-radius:8px;margin-bottom:8px;background:#fff;border:1px solid #eef3fb;font-size:14px}
+
+    /* desktop layout */
+    @media(min-width:920px){
+      .grid{flex-direction:row; align-items:flex-start}
+      .col-left{flex:2; display:flex; flex-direction:column; gap:12px}
+      .col-right{flex:1; display:flex; flex-direction:column; gap:12px}
+      .services-list{max-width:100%}
+    }
+
+    /* dark mode */
+    body.dark{background:#071029;color:#e6eef7}
+    body.dark .card{background:#0b1220}
+    body.dark input, body.dark textarea, body.dark select{background:#071427;color:#e6eef7;border:1px solid #15324a}
+    body.dark .service{background:#071427}
+    body.dark .category-title{color:#cbd5e1}
+    body.dark .price{color:#7dd3fc}
+    body.dark .btn-outline{border-color:rgba(255,255,255,0.06); color:#fff}
+
+    /* small tweaks */
+    .small{font-size:13px;color:var(--muted)}
+    .actions-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
+    .center{text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Cotizador — Diseño & Marketing</h1>
+
+    <div class="grid">
+      <!-- LEFT / MAIN -->
+      <div class="col-left">
+        <!-- Cliente card -->
+        <div class="card">
+          <label>Cliente</label>
+          <input id="cliente" type="text" placeholder="Nombre del cliente (ej: Clínica ABC)">
+          <label class="small">Observaciones</label>
+          <textarea id="observaciones" placeholder="Notas, objetivos o comentarios breves"></textarea>
+        </div>
+
+        <!-- Empresa + options -->
+        <div class="card">
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+            <div>
+              <label>Tipo de empresa</label>
+              <select id="empresa" onchange="updatePrices()">
+                <option value="A">Empresa A — Emprendimiento</option>
+                <option value="B">Empresa B — Pyme</option>
+                <option value="C">Empresa C — Consolidada</option>
+              </select>
+            </div>
+            <div style="text-align:right">
+              <label>Opciones</label>
+              <div style="margin-top:8px">
+                <button class="btn btn-outline" onclick="toggleDescriptions()">Mostrar/ocultar descripciones</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <label class="small">Filtros (mostrar por categoría)</label>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <button class="btn btn-outline" onclick="filterCategory('all')">Todas</button>
+              <button class="btn btn-outline" onclick="filterCategory('Diseño')">🎨 Diseño</button>
+              <button class="btn btn-outline" onclick="filterCategory('Marketing')">📈 Marketing</button>
+              <button class="btn btn-outline" onclick="filterCategory('Web')">🌐 Web</button>
+              <button class="btn btn-outline" onclick="filterCategory('Audiovisual')">🎥 Audiovisual</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Servicios -->
+        <div class="card services-list">
+          <h3>Servicios</h3>
+          <div id="services"></div>
+        </div>
+
+        <!-- Agregar personalizado -->
+        <div class="card">
+          <h3>Agregar servicio personalizado</h3>
+          <input id="customName" type="text" placeholder="Nombre del servicio (obligatorio)">
+          <input id="customIcon" type="text" placeholder="Emoji o icono (opcional) - ej: 🎨">
+          <textarea id="customDesc" placeholder="Descripción breve"></textarea>
+          <input id="customPrice" type="number" placeholder="Valor CLP (por unidad)">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-primary" onclick="addCustomService()">Agregar servicio</button>
+            <button class="btn btn-outline" onclick="clearCustom()">Limpiar</button>
+          </div>
+        </div>
+
+        <!-- Totales y acciones -->
+        <div class="card">
+          <h3>Total</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1">
+              <label class="small">Descuento (%)</label>
+              <input id="discount" type="number" min="0" max="100" value="0" oninput="calculateAndRender()">
+            </div>
+            <div style="min-width:120px; text-align:right">
+              <div class="small">Subtotal</div>
+              <div id="subtotalText" style="font-weight:800;">$0</div>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <button class="btn btn-discount" onclick="applyDiscount(10)">-10%</button>
+            <button class="btn btn-discount" onclick="applyDiscount(20)">-20%</button>
+            <button class="btn btn-discount" onclick="applyDiscount(30)">-30%</button>
+            <button class="btn btn-discount" onclick="applyDiscount(40)">-40%</button>
+          </div>
+
+          <div class="final-total" id="totalText">$0</div>
+
+          <div class="actions-row" style="margin-top:12px">
+            <button class="btn btn-pdf" onclick="exportPDF()">📄 Exportar PDF</button>
+            <button class="btn btn-wa" onclick="sendWhatsApp()">📲 Enviar por WhatsApp</button>
+            <button class="btn btn-save" onclick="saveQuote()">💾 Guardar Cotización</button>
+            <button class="btn btn-dark" onclick="toggleDark()">🌙 Modo Oscuro</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT / SIDEBAR -->
+      <div class="col-right">
+        <div class="card">
+          <h3 class="center">Detalle de Cotización</h3>
+          <div id="detalle" class="muted small" style="min-height:80px">No hay servicios seleccionados.</div>
+        </div>
+
+        <div class="card">
+          <h3 class="center">Historial</h3>
+          <div id="historial"></div>
+          <div style="margin-top:8px" class="small muted">Las cotizaciones se guardan localmente en este dispositivo.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== Datos base (tarifario con categorías) ======
+    const tarifario = {
+      "Diseño": {
+        "Creación de Logo": { desc: "2 propuestas + 1 versión final. Archivos .ai/.svg/.png", A:120000, B:180000, C:250000, icon:"🎨" },
+        "Manual de Marca": { desc: "Lineamientos básicos: colores, tipografías y usos.", A:180000, B:250000, C:350000, icon:"📘" },
+        "Diseño de piezas gráficas": { desc: "Flyers, carteles, stickers (precio por unidad).", A:25000, B:40000, C:60000, icon:"📄" }
+      },
+      "Marketing": {
+        "Manejo de redes sociales": { desc: "Gestión de 1 red social (publicaciones + moderación).", A:120000, B:180000, C:250000, icon:"📱" },
+        "Campañas publicitarias": { desc: "Meta Ads: setup + optimización (no incluye presupuesto publicitario).", A:80000, B:150000, C:250000, icon:"📣" },
+        "Email Marketing": { desc: "Configuración + 2 envíos mensuales.", A:60000, B:100000, C:160000, icon:"✉️" }
+      },
+      "Web": {
+        "Diseño y Construcción de Sitio Web": { desc: "WordPress + Elementor (One Page o corporativo básico).", A:450000, B:650000, C:900000, icon:"🌐" },
+        "Mantención de Sitio Web": { desc: "Backups, actualizaciones y soporte (hasta 2h/mes).", A:50000, B:80000, C:120000, icon:"🛠️" },
+        "Gestión de E-commerce": { desc: "Subida de productos y configuración básica de tienda.", A:150000, B:250000, C:400000, icon:"🛒" }
+      },
+      "Audiovisual": {
+        "Creación de contenido": { desc: "Sesión básica foto/video (1 sesión).", A:150000, B:250000, C:400000, icon:"📸" },
+        "Producción Audiovisual": { desc: "Preproducción, rodaje y post (sesión básica).", A:250000, B:400000, C:650000, icon:"🎬" },
+        "Gestión de impresión": { desc: "Revisión y gestión de producción impresa.", A:30000, B:50000, C:80000, icon:"🖨️" }
+      }
+    };
+
+    // ====== Estado y utilidades ======
+    let lastID = parseInt(localStorage.getItem("lastID") || "0"); // para número de cotización
+    let historial = JSON.parse(localStorage.getItem("historial") || "[]");
+    let showDescriptions = true;
+    let currentFilter = "all";
+
+    // formateo de moneda CLP
+    const fmt = v => "$" + Number(v).toLocaleString("es-CL");
+
+    // RENDER services dinámicamente
+    function updatePrices(){
+      const empresa = document.getElementById("empresa").value;
+      const servicesEl = document.getElementById("services");
+      servicesEl.innerHTML = "";
+
+      for(const [cat, servicios] of Object.entries(tarifario)){
+        // category container
+        const title = document.createElement("div");
+        title.className = "category-title";
+        title.textContent = cat;
+        title.dataset.cat = cat;
+        servicesEl.appendChild(title);
+
+        for(const [name, data] of Object.entries(servicios)){
+          const item = document.createElement("div");
+          item.className = "service";
+          item.dataset.category = cat;
+
+          const price = data[empresa];
+
+          item.innerHTML = `
+            <div class="service-header">
+              <input type="checkbox" data-price="${price}" data-name="${name}" data-desc="${data.desc}" />
+              <label>${data.icon ? data.icon + " " : ""}${name}</label>
+            </div>
+            <div class="description">${data.desc}</div>
+            <div class="qty">
+              <div class="left">
+                <div class="small">Cant:</div>
+                <input type="number" min="1" value="1" disabled />
+              </div>
+              <div class="price">${fmt(price)} c/u</div>
+            </div>
+          `;
+          // checkbox enabling qty
+          const cb = item.querySelector("input[type=checkbox]");
+          const qty = item.querySelector("input[type=number]");
+          cb.addEventListener("change", ()=>{ qty.disabled = !cb.checked; calculateAndRender(); });
+          qty.addEventListener("input", calculateAndRender);
+
+          servicesEl.appendChild(item);
+        }
+      }
+      // append any custom services previously added (stored in localStorage customServices)
+      const customs = JSON.parse(localStorage.getItem("customServices") || "[]");
+      if(customs.length){
+        const title = document.createElement("div");
+        title.className = "category-title";
+        title.textContent = "Personalizados";
+        servicesEl.appendChild(title);
+        customs.forEach(c=>{
+          const item = document.createElement("div");
+          item.className = "service";
+          item.dataset.category = "Personalizados";
+          item.innerHTML = `<div class="service-header"><input type="checkbox" data-price="${c.price}" data-name="${c.name}" data-desc="${c.desc}" /><label>${c.icon?c.icon+" ":""}${c.name}</label></div><div class="description">${c.desc}</div><div class="qty"><div class="left"><div class="small">Cant:</div><input type="number" min="1" value="1" disabled /></div><div class="price">${fmt(c.price)} c/u</div></div>`;
+          const cb = item.querySelector("input[type=checkbox]");
+          const qty = item.querySelector("input[type=number]");
+          cb.addEventListener("change", ()=>{ qty.disabled = !cb.checked; calculateAndRender(); });
+          qty.addEventListener("input", calculateAndRender);
+          servicesEl.appendChild(item);
+        });
+      }
+
+      // ensure descriptions toggle
+      document.querySelectorAll(".description").forEach(d => d.style.display = showDescriptions ? "block" : "none");
+      calculateAndRender();
+    }
+
+    // Filtrar categoría (muestra/oculta)
+    function filterCategory(cat){
+      currentFilter = cat;
+      document.querySelectorAll("#services .service, #services .category-title").forEach(node=>{
+        const isTitle = node.classList.contains("category-title");
+        if(isTitle){
+          // show titles only if any child service visible
+          node.style.display = "block";
+        } else {
+          const nodeCat = node.dataset.category;
+          if(cat === "all" || nodeCat === cat || (cat === "Personalizados" && nodeCat === "Personalizados")){
+            node.style.display = "flex";
+          } else node.style.display = "none";
+        }
+      });
+
+      // Hide category titles that ended up with no visible children
+      document.querySelectorAll("#services .category-title").forEach(title=>{
+        // find next siblings until next category-title - if none visible, hide title
+        let el = title.nextElementSibling;
+        let anyVisible = false;
+        while(el && !el.classList.contains("category-title")){
+          if(el.style.display !== "none"){ anyVisible = true; break; }
+          el = el.nextElementSibling;
+        }
+        title.style.display = anyVisible ? "block" : "none";
+      });
+    }
+
+    // Calculate subtotal, discount, total and render detalle + totals
+    function calculateAndRender(){
+      const checkboxes = document.querySelectorAll("#services input[type=checkbox]");
+      let subtotal = 0;
+      const detalleItems = [];
+
+      checkboxes.forEach(cb=>{
+        if(cb.checked){
+          const price = Number(cb.dataset.price || 0);
+          const serviceEl = cb.closest(".service");
+          const qty = Number(serviceEl.querySelector("input[type=number]").value || 1);
+          const lineTotal = price * qty;
+          subtotal += lineTotal;
+          detalleItems.push({ name: cb.dataset.name, desc: cb.dataset.desc, qty, price, lineTotal });
+        }
+      });
+
+      const discount = Number(document.getElementById("discount").value || 0);
+      const total = Math.round(subtotal - (subtotal * discount / 100));
+
+      // render totals
+      document.getElementById("subtotalText").textContent = fmt(subtotal);
+      document.getElementById("totalText").textContent = fmt(total);
+
+      // render detalle panel
+      const detalleEl = document.getElementById("detalle");
+      if(detalleItems.length === 0){
+        detalleEl.innerHTML = '<div class="small muted">No hay servicios seleccionados.</div>';
+      } else {
+        let html = '<ul style="padding-left:12px;margin:0">';
+        detalleItems.forEach(it=>{
+          html += `<li style="margin-bottom:8px"><strong>${it.name}</strong> (x${it.qty}) — ${fmt(it.lineTotal)}<div class="small muted">${it.desc}</div></li>`;
+        });
+        html += `</ul><div style="margin-top:8px" class="small">Descuento aplicado: <strong>${discount}%</strong></div>`;
+        html += `<div style="margin-top:10px"><strong>Subtotal:</strong> ${fmt(subtotal)}<br/><strong>Total con descuento:</strong> ${fmt(total)}</div>`;
+        detalleEl.innerHTML = html;
+      }
+
+      // return values for use
+      return { subtotal, discount, total, detalleItems };
+    }
+
+    // Add custom service and persist
+    function addCustomService(){
+      const name = (document.getElementById("customName").value || "").trim();
+      const icon = (document.getElementById("customIcon").value || "").trim();
+      const desc = (document.getElementById("customDesc").value || "").trim();
+      const price = Number(document.getElementById("customPrice").value || 0);
+
+      if(!name || price <= 0){ alert("Ingrese nombre y precio válido para el servicio personalizado."); return; }
+
+      const custom = { name, icon, desc, price };
+      const customs = JSON.parse(localStorage.getItem("customServices") || "[]");
+      customs.push(custom);
+      localStorage.setItem("customServices", JSON.stringify(customs));
+
+      // re-render services
+      updatePrices();
+
+      // clear inputs
+      document.getElementById("customName").value = "";
+      document.getElementById("customIcon").value = "";
+      document.getElementById("customDesc").value = "";
+      document.getElementById("customPrice").value = "";
+      // optionally open filter to custom
+      filterCategory("Personalizados");
+    }
+    function clearCustom(){ document.getElementById("customName").value=""; document.getElementById("customIcon").value=""; document.getElementById("customDesc").value=""; document.getElementById("customPrice").value=""; }
+
+    // Discounts quick
+    function applyDiscount(pct){ document.getElementById("discount").value = pct; calculateAndRender(); }
+
+    // Toggle descriptions
+    function toggleDescriptions(){ showDescriptions = !showDescriptions; document.querySelectorAll(".description").forEach(d => d.style.display = showDescriptions ? "block" : "none"); }
+
+    // Dark mode
+    function toggleDark(){ document.body.classList.toggle("dark"); }
+
+    // ===== PDF export (detailed) =====
+    async function exportPDF(){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit:"pt", format:"a4" });
+      const left = 40;
+      let y = 40;
+
+      // header
+      doc.setFontSize(18); doc.text("Cotización de Servicios", left, y); y += 20;
+      const cliente = document.getElementById("cliente").value || "Sin nombre";
+      const obs = document.getElementById("observaciones").value || "";
+      // Quote id preview: use next id but do not increment storage until save
+      const nextId = (lastID + 1).toString().padStart(3,"0");
+      const quoteId = `COT-2025-${nextId}`;
+      doc.setFontSize(11);
+      doc.text(`ID: ${quoteId}`, left, y); y += 14;
+      doc.text(`Cliente: ${cliente}`, left, y); y += 14;
+      if(obs){ doc.text(`Observaciones: ${obs}`, left, y); y += 18; }
+
+      // table header
+      y += 6;
+      doc.setFontSize(12);
+      doc.text("Servicios", left, y); doc.text("Cant", left + 330, y); doc.text("Precio unidad", left + 390, y); doc.text("Total", left + 480, y); y += 8;
+
+      // horizontal line
+      doc.setLineWidth(0.5); doc.line(left, y, 560, y); y += 12;
+
+      const { subtotal, discount, total, detalleItems } = calculateAndRender();
+
+      detalleItems.forEach(it => {
+        doc.setFontSize(11);
+        // Wrap service name if long
+        const name = it.name;
+        const desc = it.desc;
+        doc.text(name, left, y);
+        doc.text(String(it.qty), left + 330, y);
+        doc.text(fmt(it.price), left + 390, y);
+        doc.text(fmt(it.lineTotal), left + 480, y);
+        y += 14;
+        if(desc){
+          doc.setFontSize(10); doc.setTextColor(100); doc.text(desc, left + 8, y); y += 12; doc.setTextColor(0);
+        }
+        if(y > 720){ doc.addPage(); y = 40; }
+      });
+
+      // totals
+      y += 8; doc.setLineWidth(0.5); doc.line(left, y, 560, y); y += 12;
+      doc.setFontSize(11); doc.text(`Subtotal: ${fmt(subtotal)}`, left + 350, y); y += 14;
+      doc.text(`Descuento: ${discount}%`, left + 350, y); y += 14;
+      doc.setFontSize(13); doc.text(`Total: ${fmt(total)}`, left + 350, y); y += 18;
+
+      doc.save(`${quoteId}.pdf`);
+    }
+
+    // ===== WhatsApp sharing (opens chat with prefilled message) =====
+    function sendWhatsApp(){
+      const cliente = document.getElementById("cliente").value || "Sin nombre";
+      const obs = document.getElementById("observaciones").value || "";
+      const { subtotal, discount, total, detalleItems } = calculateAndRender();
+      // Build message
+      let msg = `📋 Cotización (${new Date().toLocaleDateString()})%0A`;
+      msg += `Cliente: ${cliente}%0A`;
+      if(obs) msg += `Observaciones: ${obs}%0A`;
+      msg += `%0AServicios:%0A`;
+      detalleItems.forEach(it => {
+        msg += `• ${it.name} (x${it.qty}) — ${fmt(it.lineTotal)}%0A`;
+      });
+      msg += `%0ASubtotal: ${fmt(subtotal)}%0ADescuento: ${discount}%0ATotal: ${fmt(total)}%0A`;
+      // open wa.me without number (user chooses chat) - you could add phone
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank");
+    }
+
+    // ===== Guardar cotización en localStorage (historial) =====
+    function saveQuote(){
+      const cliente = document.getElementById("cliente").value || "Sin nombre";
+      const obs = document.getElementById("observaciones").value || "";
+      const { subtotal, discount, total, detalleItems } = calculateAndRender();
+      if(detalleItems.length === 0){ if(!confirm("No hay servicios seleccionados. ¿Deseas guardar una cotización vacía?")) return; }
+      // increment id
+      lastID = lastID + 1;
+      localStorage.setItem("lastID", String(lastID));
+      const id = `COT-2025-${String(lastID).padStart(3,"0")}`;
+      const fecha = new Date().toLocaleString();
+      const record = { id, fecha, cliente, obs, subtotal, discount, total, detalleItems };
+      historial.push(record);
+      localStorage.setItem("historial", JSON.stringify(historial));
+      renderHistorial();
+      alert(`Cotización guardada: ${id}`);
+    }
+
+    // render historial list
+    function renderHistorial(){
+      historial = JSON.parse(localStorage.getItem("historial") || "[]");
+      const cont = document.getElementById("historial");
+      cont.innerHTML = "";
+      if(historial.length === 0){ cont.innerHTML = '<div class="small muted">No hay cotizaciones guardadas.</div>'; return; }
+      // reverse order (newest first)
+      [...historial].reverse().forEach(h=>{
+        const div = document.createElement("div");
+        div.className = "historial-item";
+        div.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${h.id}</strong><div class="small muted">${h.fecha}</div></div><div style="text-align:right"><strong>${fmt(h.total)}</strong></div></div>
+                         <div class="small muted">${h.cliente} — ${h.obs || ""}</div>`;
+        // allow click to view detail in alert (or future load)
+        div.addEventListener("click", ()=> showHistoryDetail(h));
+        cont.appendChild(div);
+      });
+    }
+
+    function showHistoryDetail(h){
+      let txt = `${h.id} — ${h.fecha}\nCliente: ${h.cliente}\nObservaciones: ${h.obs}\n\nServicios:\n`;
+      h.detalleItems.forEach(it => { txt += `• ${it.name} (x${it.qty}) — ${fmt(it.lineTotal)}\n`; });
+      txt += `\nSubtotal: ${fmt(h.subtotal)}\nDescuento: ${h.discount}%\nTotal: ${fmt(h.total)}`;
+      alert(txt);
+    }
+
+    // init
+    function init(){
+      // load customs if not present
+      if(!localStorage.getItem("customServices")) localStorage.setItem("customServices", JSON.stringify([]));
+      historial = JSON.parse(localStorage.getItem("historial") || "[]");
+      lastID = parseInt(localStorage.getItem("lastID") || "0");
+      updatePrices();
+      renderHistorial();
+    }
+
+    // run
+    init();
+  </script>
+</body>
+</html>
