@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cotizador — Servicios Audiovisuales (Lavado / Tapicería / Academia)</title>
+<style>
+  :root{
+    --bg: #0b1220;
+    --card: #071022;
+    --muted: #9aa7b8;
+    --accent: #fbbf24;
+    --glass: rgba(255,255,255,0.03);
+    --text: #e6eef8;
+    font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background: linear-gradient(180deg,#071025 0%, #081426 100%);
+    color:var(--text);
+    padding:28px;
+  }
+  .wrap{
+    max-width:1100px;margin:0 auto;
+  }
+  header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .logo{
+    width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#ffb86b);display:flex;align-items:center;justify-content:center;font-weight:800;color:#071425;font-size:20px;
+  }
+  h1{margin:0;font-size:20px}
+  p.lead{color:var(--muted);margin:4px 0 0;font-size:13px}
+
+  .controls{
+    display:flex;gap:12px;align-items:center;margin:18px 0 22px;flex-wrap:wrap;
+  }
+  .control-item{background:var(--card);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  select,input[type="text"],input[type="number"],textarea{
+    background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);padding:8px;border-radius:8px;
+  }
+  table{width:100%;border-collapse:collapse;margin-bottom:18px}
+  th,td{padding:12px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;font-size:14px}
+  th{background:rgba(255,255,255,0.02);color:var(--muted);font-weight:600}
+  tr:hover td{background:rgba(255,255,255,0.01)}
+  .service-name{font-weight:700;color:#fff}
+  .price{font-weight:700;color:var(--accent)}
+  .muted{color:var(--muted);font-size:13px}
+
+  .two-col{display:grid;grid-template-columns:1fr 360px;gap:18px}
+  @media(max-width:980px){ .two-col{grid-template-columns:1fr} }
+
+  .quote-card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);
+  }
+  .summary-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px dashed rgba(255,255,255,0.03)}
+  .big{font-size:18px;font-weight:800;color:var(--accent)}
+  .small{font-size:13px;color:var(--muted)}
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .btn{padding:10px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+  .btn.primary{background:var(--accent);color:#071425}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text)}
+  .btn.warn{background:#ef4444;color:#fff}
+
+  footer{margin-top:22px;color:var(--muted);font-size:13px;text-align:center}
+  .note{font-size:13px;color:var(--muted)}
+
+  /* small helper */
+  .checkbox-cell{width:36px;text-align:center}
+  .desc{color:var(--muted);font-size:13px;line-height:1.35}
+  .pack-label{background:#062233;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);display:inline-block;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><ul><li><a href="index.html">Cotizador Totomas</a></li><li><a href="filmmaker.html">Creación de contenido</a></li></ul></nav>
+  <header>
+    <div class="logo">TA</div>
+    <div>
+      <h1>Cotizador — Servicios Audiovisuales</h1>
+      <p class="lead">Activa Tipo de Cliente (A/B/C), selecciona servicios/packs, aplica descuento y comparte la cotización por WhatsApp o exporta a PDF.</p>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="control-item">
+      <label class="small"><strong>Tipo de Cliente:</strong></label><br>
+      <select id="tipoCliente">
+        <option value="A">Cliente Tipo A — Económico</option>
+        <option value="B" selected>Cliente Tipo B — Estándar</option>
+        <option value="C">Cliente Tipo C — Premium</option>
+      </select>
+    </div>
+
+    <div class="control-item">
+      <label class="small"><strong>Nombre cliente:</strong></label><br>
+      <input type="text" id="clienteNombre" placeholder="Nombre o empresa">
+    </div>
+
+    <div class="control-item">
+      <label class="small"><strong>% Descuento:</strong></label><br>
+      <input type="number" id="descuentoPorc" value="0" min="0" max="100" style="width:110px"> %
+    </div>
+
+    <div class="control-item">
+      <label class="small"><strong>Teléfono (WhatsApp):</strong></label><br>
+      <input type="text" id="whatsPhone" placeholder="569XXXXXXXX (opcional)">
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3 style="margin-bottom:8px">Servicios (marca para incluir en la cotización)</h3>
+      <table id="tablaServicios">
+        <thead>
+          <tr>
+            <th class="checkbox-cell"></th>
+            <th>Servicio</th>
+            <th>Descripción</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS inyecta aquí -->
+        </tbody>
+      </table>
+
+      <h3 style="margin:12px 0 8px">Packs / Combos</h3>
+      <table id="tablaPacks">
+        <thead>
+          <tr>
+            <th class="checkbox-cell"></th>
+            <th>Pack</th>
+            <th>Qué incluye</th>
+            <th>Precio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- JS inyecta aquí -->
+        </tbody>
+      </table>
+    </div>
+
+    <aside class="quote-card">
+      <h3 style="margin-top:0">Resumen de Cotización</h3>
+
+      <div class="note" style="margin-bottom:8px">Revisa y ajusta cliente / descuento antes de enviar.</div>
+
+      <div id="itemsList" style="max-height:260px;overflow:auto;padding-right:6px"></div>
+
+      <div class="summary-row">
+        <div class="small">Subtotal</div>
+        <div id="subtotal" class="small">—</div>
+      </div>
+      <div class="summary-row">
+        <div class="small">Descuento</div>
+        <div id="descuentoVal" class="small">—</div>
+      </div>
+      <div class="summary-row">
+        <div class="small">Total (CLP)</div>
+        <div id="total" class="big">—</div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label class="small">Mensaje / Nota (opcional)</label>
+        <textarea id="nota" rows="3" style="width:100%;background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text);padding:8px;border-radius:8px;font-size:13px"></textarea>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" onclick="generarCotizacion()">Generar cotización</button>
+        <button class="btn ghost" onclick="copiarResumen()">Copiar resumen</button>
+        <button class="btn" onclick="abrirWhatsApp()">Enviar por WhatsApp</button>
+        <button class="btn" onclick="imprimirPDF()">Exportar a PDF</button>
+      </div>
+
+      <div style="margin-top:10px" class="small muted">Sugerencia: revisa teléfono antes de enviar por WhatsApp.</div>
+    </aside>
+  </div>
+
+  <footer>
+    <div class="note">Archivo editable — puedes cambiar descripciones, precios y packs dentro del código. © Tomás en Acción</div>
+  </footer>
+</div>
+
+<script>
+/* =========================
+  Datos de servicios y packs
+   Precios por tipo (A, B, C)
+   Si quieres editar precios: modifica esta estructura.
+   ========================= */
+const serviciosData = [
+  {
+    id: 'reel_ad',
+    nombre: 'Reel Antes / Después',
+    desc: 'Grabación del proceso + edición con transición antes/after, optimizado para RRSS.',
+    precio: { A:80000, B:120000, C:150000 }
+  },
+  {
+    id: 'reel_proceso',
+    nombre: 'Reel de Proceso',
+    desc: 'Plano detalle del proceso, sonidos, ritmo y ediciones para alto engagement.',
+    precio: { A:60000, B:80000, C:100000 }
+  },
+  {
+    id: 'fotos',
+    nombre: 'Fotografías Profesionales (10–20)',
+    desc: 'Selección y edición de 10–20 fotos para web, Google y redes (antes/después incluidos).',
+    precio: { A:60000, B:90000, C:140000 }
+  },
+  {
+    id: 'testimonio',
+    nombre: 'Testimonio cliente (1)',
+    desc: 'Microentrevista + edición, audio limpio y subtítulos si es necesario.',
+    precio: { A:25000, B:40000, C:70000 }
+  },
+  {
+    id: 'video_corp',
+    nombre: 'Video Corporativo (spot 30–60s)',
+    desc: 'Video corporativo corto para explicar servicio, equipo y confianza (útil para web y ads).',
+    precio: { A:80000, B:120000, C:180000 }
+  },
+  {
+    id: 'cobertura_evento',
+    nombre: 'Cobertura de evento / gala / show (2–3h)',
+    desc: 'Registro del evento, backstage, público, highlights y tomas de acción.',
+    precio: { A:120000, B:150000, C:250000 }
+  },
+  {
+    id: 'reel_event',
+    nombre: 'Reel resumen del evento',
+    desc: 'Highlight edit del evento, música y ritmo narrativo para invitaciones futuras.',
+    precio: { A:50000, B:80000, C:120000 }
+  },
+];
+
+const packsData = [
+  {
+    id: 'impacto_visual',
+    nombre: 'Paquete Impacto Visual',
+    incluye: '3 reels (antes/después + proceso + caso difícil) + 10 fotos + 1 testimonio',
+    precio: { A:200000, B:260000, C:340000 }
+  },
+  {
+    id: 'redes_full',
+    nombre: 'Paquete Redes Full',
+    incluye: '5 reels mensuales + 15 fotos + 1 reel para pauta',
+    precio: { A:260000, B:320000, C:420000 }
+  },
+  {
+    id: 'corporativo_pro',
+    nombre: 'Paquete Corporativo Pro',
+    incluye: 'Video corporativo + 2 reels + set de 10 fotos + diseño de 3 piezas gráficas',
+    precio: { A:250000, B:340000, C:480000 }
+  },
+  {
+    id: 'evento_premium',
+    nombre: 'Pack Evento Premium',
+    incluye: 'Cobertura gala 4h + reel resumen premium + 20 fotos editadas',
+    precio: { A:320000, B:420000, C:620000 }
+  }
+];
+
+/* =========================
+  Render tablas
+  ========================= */
+const tablaServiciosBody = document.querySelector('#tablaServicios tbody');
+const tablaPacksBody = document.querySelector('#tablaPacks tbody');
+const tipoSelect = document.getElementById('tipoCliente');
+
+function currencyCLP(n){
+  return n.toLocaleString('es-CL') + ' CLP';
+}
+
+function renderTablas(){
+  const tipo = tipoSelect.value;
+  tablaServiciosBody.innerHTML = '';
+  serviciosData.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="checkbox-cell"><input type="checkbox" data-id="${s.id}" class="ck-item"></td>
+      <td class="service-name">${s.nombre}</td>
+      <td class="desc">${s.desc}</td>
+      <td class="priceCol price" data-id="${s.id}">${currencyCLP(s.precio[tipo])}</td>
+    `;
+    tablaServiciosBody.appendChild(tr);
+  });
+
+  tablaPacksBody.innerHTML = '';
+  packsData.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="checkbox-cell"><input type="checkbox" data-id="${p.id}" class="ck-pack"></td>
+      <td class="service-name"><span class="pack-label">Pack</span> ${p.nombre}</td>
+      <td class="desc">${p.incluye}</td>
+      <td class="priceCol price" data-id="${p.id}">${currencyCLP(p.precio[tipo])}</td>
+    `;
+    tablaPacksBody.appendChild(tr);
+  });
+
+  // bind change events
+  document.querySelectorAll('.ck-item, .ck-pack').forEach(cb => cb.addEventListener('change', actualizarResumen));
+}
+
+// recalcula resumen cuando cambian cosas
+function actualizarResumen(){
+  const tipo = tipoSelect.value;
+  const checkedItems = Array.from(document.querySelectorAll('.ck-item:checked')).map(el => el.getAttribute('data-id'));
+  const checkedPacks = Array.from(document.querySelectorAll('.ck-pack:checked')).map(el => el.getAttribute('data-id'));
+
+  const itemsList = document.getElementById('itemsList');
+  itemsList.innerHTML = '';
+
+  let subtotal = 0;
+  checkedItems.forEach(id => {
+    const s = serviciosData.find(x => x.id === id);
+    const price = s.precio[tipo];
+    subtotal += price;
+    const div = document.createElement('div');
+    div.style.padding = '6px 0';
+    div.innerHTML = `<div style="display:flex;justify-content:space-between"><div>${s.nombre}</div><div class="price">${currencyCLP(price)}</div></div>`;
+    itemsList.appendChild(div);
+  });
+
+  checkedPacks.forEach(id => {
+    const p = packsData.find(x => x.id === id);
+    const price = p.precio[tipo];
+    subtotal += price;
+    const div = document.createElement('div');
+    div.style.padding = '6px 0';
+    div.innerHTML = `<div style="display:flex;justify-content:space-between"><div><strong>${p.nombre}</strong></div><div class="price">${currencyCLP(price)}</div></div>`;
+    itemsList.appendChild(div);
+  });
+
+  // aplicar descuento
+  const porc = parseFloat(document.getElementById('descuentoPorc').value) || 0;
+  const descuentoVal = Math.round(subtotal * (porc/100));
+  const total = Math.round(subtotal - descuentoVal);
+
+  document.getElementById('subtotal').innerText = (subtotal>0) ? currencyCLP(subtotal) : '—';
+  document.getElementById('descuentoVal').innerText = (porc>0) ? `${porc}% → - ${currencyCLP(descuentoVal)}` : '0%';
+  document.getElementById('total').innerText = (total>0) ? currencyCLP(total) : '—';
+}
+
+// evento cambios
+tipoSelect.addEventListener('change', () => { renderTablas(); actualizarResumen(); });
+document.getElementById('descuentoPorc').addEventListener('input', actualizarResumen);
+document.getElementById('clienteNombre').addEventListener('input', ()=>{}); // placeholder for potential logic
+
+// funciones para botones
+function generarCotizacion(){
+  actualizarResumen();
+  alert('Cotización generada en el panel derecho. Revisa el total y usa "Enviar por WhatsApp" o "Exportar a PDF".');
+}
+
+function copiarResumen(){
+  actualizarResumen();
+  const nombre = document.getElementById('clienteNombre').value || '(sin nombre)';
+  const tipo = tipoSelect.value;
+  const subtotalText = document.getElementById('subtotal').innerText;
+  const descuentoText = document.getElementById('descuentoVal').innerText;
+  const totalText = document.getElementById('total').innerText;
+  const nota = document.getElementById('nota').value || '';
+
+  // construir listado de items
+  const items = Array.from(document.querySelectorAll('#itemsList > div')).map(d => d.innerText).join('\\n');
+
+  const text = `Cotización — Cliente: ${nombre}\\nTipo: ${tipo}\\n\\nItems:\\n${items || '- ninguno -'}\\n\\nSubtotal: ${subtotalText}\\nDescuento: ${descuentoText}\\nTotal: ${totalText}\\n\\nNota: ${nota}`;
+  navigator.clipboard.writeText(text).then(()=>{ alert('Resumen copiado al portapapeles'); }, ()=>{ prompt('Copiar manualmente:', text); });
+}
+
+function abrirWhatsApp(){
+  actualizarResumen();
+  const phone = document.getElementById('whatsPhone').value.trim();
+  const nombre = document.getElementById('clienteNombre').value || '(sin nombre)';
+  const tipo = tipoSelect.value;
+  const subtotalText = document.getElementById('subtotal').innerText;
+  const descuentoText = document.getElementById('descuentoVal').innerText;
+  const totalText = document.getElementById('total').innerText;
+  const nota = document.getElementById('nota').value || '';
+
+  const items = Array.from(document.querySelectorAll('#itemsList > div')).map(d => d.innerText).join('\\n') || '- ninguno -';
+
+  let msg = `Hola! Te comparto la cotización:\\n\\nCliente: ${nombre}\\nTipo: ${tipo}\\n\\nItems:\\n${items}\\n\\nSubtotal: ${subtotalText}\\nDescuento: ${descuentoText}\\nTotal: ${totalText}\\n\\nNota: ${nota}\\n\\nSi quieres, puedo ajustar detalles o agendar una reunión. — Tomás`;
+
+  // encode
+  const encoded = encodeURIComponent(msg);
+  let url;
+  if(phone){
+    const phoneClean = phone.replace(/[^0-9]/g,'');
+    url = `https://wa.me/${phoneClean}?text=${encoded}`;
+  } else {
+    // default to web.whatsapp with no phone
+    url = `https://wa.me/?text=${encoded}`;
+  }
+  window.open(url,'_blank');
+}
+
+function imprimirPDF(){
+  actualizarResumen();
+  // abrimos una nueva ventana con el contenido ligero para imprimir
+  const nombre = document.getElementById('clienteNombre').value || '(sin nombre)';
+  const tipo = tipoSelect.value;
+  const subtotalText = document.getElementById('subtotal').innerText;
+  const descuentoText = document.getElementById('descuentoVal').innerText;
+  const totalText = document.getElementById('total').innerText;
+  const nota = document.getElementById('nota').value || '';
+  const itemsHTML = document.getElementById('itemsList').innerHTML || '<div>- ninguno -</div>';
+
+  const html = `
+  <html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Cotización - ${nombre}</title>
+    <style>
+      body{font-family: Arial, Helvetica, sans-serif;padding:20px;color:#0b1220}
+      h2{color:#0b1220}
+      .items{margin-top:10px}
+      .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #ddd}
+      .muted{color:#666;font-size:13px}
+    </style>
+  </head>
+  <body>
+    <h2>Cotización — ${nombre}</h2>
+    <div class="muted">Tipo cliente: ${tipo}</div>
+    <div class="items">
+      ${itemsHTML}
+    </div>
+    <div style="margin-top:12px">
+      <div class="row"><div>Subtotal</div><div>${subtotalText}</div></div>
+      <div class="row"><div>Descuento</div><div>${descuentoText}</div></div>
+      <div class="row" style="font-weight:800"><div>Total</div><div>${totalText}</div></div>
+    </div>
+    <div style="margin-top:12px">
+      <div><strong>Nota:</strong></div>
+      <div class="muted">${nota}</div>
+    </div>
+    <div style="margin-top:18px" class="muted">Generado por Tomás — Tomás en Acción</div>
+  </body>
+  </html>
+  `;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>{ w.print(); }, 600);
+}
+
+/* init render */
+renderTablas();
+actualizarResumen();
+</script>
+</body>
+</html>
